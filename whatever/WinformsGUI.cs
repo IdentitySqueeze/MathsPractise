@@ -119,11 +119,6 @@ namespace DustBlowerClient {
             layoutWalker = (ITreeWalker<wfNode, SizeArgsRtns>)layoutFactory.GetWalker(iquestion.genus);
             layoutFactory.GetWalkerOps(iquestion.genus, layoutWalker);
 
-            //var layoutWalker = new TreeWalker<wfNode, SizeArgsRtns>();
-            //layoutWalker.RowOp = SizeProcessRows;
-            //layoutWalker.PreColumnOp = SizePreColumnOp;
-            //layoutWalker.PostColumnOp = SizePostColumnOp;
-
             // run layout
             foreach (wfPossibleAnswer possAnswer in wfPossibleAnswers) {
                 sizeRtn = new SizeArgsRtns(); //T
@@ -170,97 +165,6 @@ namespace DustBlowerClient {
 
             return true;
         }
-
-        //     measureWalker creates toBlock
-        //     keysWalker updates toBlock
-        //     drawWalker reads toBlock
-
-        #region talk
-        // Starts with columns.7
-        // When it gets to rows, tree traversal puts me here
-        // .. I'm a row if I'm here..
-        // All rows have columns
-        //    Some might be brackets
-        //        columns
-        //           |-----rows
-        //                   |-----columns (bracket)
-        //                             |----- ... then what?
-        //    Some might be root wraps/surds
-        //        columns
-        //           |-----rows
-        //                   |-----columns (root)
-        //                             |----- ... then what?
-        //    Some might be leaves
-        //        columns
-        //           |-----rows
-        //                   |-----columns
-        //                             |----- .Leaf
-        //                           ( |----- .Leaf )
-        //                           ( |-----   ... )
-        //    Some might have exponents
-        //        columns
-        //           |-----rows
-        //                   |-----columns
-        //                             |----- .Leaf
-        //                                       |-----columns (exponent group)
-        //                                                 |----- ... then what?
-        //
-        //    Some might be leaves mixed with other things
-        //        columns
-        //           |-----rows (n)
-        //                   |-----columns (container) (leaf level start)  --- below here is a 2-row ceiling ---
-        //                             |----- .Leaf (c) (integer)          ---   for leaves and exponents    ---
-        //                             |----- .Leaf (c) (integer) 
-        //                             |----- column (bracket) (c) (container)
-        //                                      {
-        //                                                |----- .Leaf (c) (integer)
-        //                                                |----- .Leaf (c) (integer)
-        //                                                |----- .Leaf (c) (integer)
-        //                                                |----- column (bracket) (c) (nested) (container)
-        //                                                         {
-        //     ...  ROWS ALWAYS STACKED VERTICALLY   ...            |----- .Leaf (c) (integer)
-        //     ...COLUMNS ALWAYS NESTED OR HORIZONTAL...            |----- .Leaf (c) (integer)
-        //                                                          |----- .Leaf (c) (integer)
-        //                                                         }
-        //                                      }
-        //                             |----- .Leaf
-        //                                       |-----column (exponent group) (container)
-        //                                                |----- .Leaf (c) (integer)
-        //                                                |----- .Leaf (c) (integer)
-        //                                                |----- column (exponent fraction) (container)
-        //                                                           |----- rows (2)
-        //                                                                    |----- .Leaf (c) (integer)
-        //                                                                    |----- .Leaf (c) (integer)
-        //                                                |----- .Leaf (c)
-        //                             |----- .Leaf  (integer)
-        //                             |----- column (fraction) (container)
-        //                                        |----- rows (2)
-        //                                                 |----- .Leaf (c) (integer)
-        //                                                 |----- .Leaf (c) (integer)
-        //                             |----- .Leaf  (integer)
-        //
-        //    Some might be brackets with exponents
-        //        columns
-        //           |-----rows
-        //                   |-----columns (bracket)
-        //                             |----- ... then what?
-
-        //                             |----- .Leaf
-        //                           ( |----- .Leaf )
-        //                           ( |-----   ... )
-        //                             |-----columns (exponent group)
-        //                                       |----- ... then what?
-
-        // --------------------------------------------------------------
-        // AXIOM: columns (n)   brackets make nestable                   
-        //           |-----rows (n)  int 1, fractions 2, matrices n      
-        //                   |-----columns (n), no leaves before here    
-        //                                      
-        //
-        //
-        //
-        // ----------------------------------------------------------- \\
-        #endregion
 
         #region// -- Size stuff --
         public SizeArgsRtns SizeProcessRows(wfNode answerCol, SizeArgsRtns rtn) {
@@ -342,11 +246,6 @@ namespace DustBlowerClient {
             }
 
             #region hints
-            // -------------------------------
-            // ... hints could be by answer, column, row or chunk
-            // ... can refer to values in the row/step/col/chunk...
-            // ---------
-            // make hints text or image, too?
             if (hints && Selected) {
                 int width = 0;
                 Rectangle hRect ;
@@ -390,11 +289,6 @@ namespace DustBlowerClient {
                                            ans.answer.All( wf =>
                                               wf.rows.All( ar => ar.answered)));
 
-        //possibleAnswers < < wfNode > >
-        //      |- answer   < wfNode >
-        //           |- answerColumns < wfNode >
-        //                    |- answerRowChunks < wfNodeElement > answered
-        //
         public bool Answered() => wfPossibleAnswers.Any(ap => ap.answer.Any(ans => ans.answered));
         #endregion
 
@@ -568,13 +462,6 @@ namespace DustBlowerClient {
             keyJustPressed = $@"{e.KeyCode}";
 
             showme += "Down..";
-            //if ((Control.ModifierKeys == Keys.Control || Control.ModifierKeys == Keys.ControlKey ||
-            //     Control.ModifierKeys == Keys.LControlKey || Control.ModifierKeys == Keys.RControlKey)
-            //     && e.KeyCode.ToString() == "R") {
-            //    //states["root"] = true;
-            //    showme += "Root..";
-            //    return;
-            //}
 
             if ((Control.ModifierKeys == Keys.ShiftKey || Control.ModifierKeys == Keys.Shift ||
                  Control.ModifierKeys == Keys.RShiftKey || Control.ModifierKeys == Keys.LShiftKey)
@@ -595,26 +482,10 @@ namespace DustBlowerClient {
                 return;
             }
 
-            //if ((Control.ModifierKeys == Keys.ShiftKey || Control.ModifierKeys == Keys.Shift ||
-            //      Control.ModifierKeys == Keys.RShiftKey || Control.ModifierKeys == Keys.LShiftKey)
-            //      && e.KeyCode.ToString() == "P") {
-            //    states["power"] = false;
-            //    states["pi"] = true;
-            //    showme += "Pi..";
-            //    return;
-            //}
-
             if (e.KeyCode == Keys.Control || e.KeyCode == Keys.ControlKey || e.KeyCode == Keys.LControlKey || e.KeyCode == Keys.RControlKey ||
                e.KeyCode == Keys.ShiftKey || e.KeyCode == Keys.Shift || e.KeyCode == Keys.RShiftKey || e.KeyCode == Keys.LShiftKey) {
             }
-            // -- Escape --
-            //if( e.KeyCode == Keys.Escape ) {
-            //    states["power"] = false;
-            //    states["base"] = false;
-            //    states["root"] = false;
-            //    keysIn.Clear();
-            //    Invalidate( );
-            //}
+
             // -- Enter --
             if (e.KeyCode == Keys.Enter || e.KeyCode == Keys.Return) {
                 states["power"] = false;
@@ -635,28 +506,14 @@ namespace DustBlowerClient {
                 //Listen for my answers here
                 if (key == "" || key == "^")
                     return;
-                //if( e.KeyChar == ( char )27 ) { //Escape key
-                //    inKeysColour = Color.Black;
-                //    keysIn.Clear( );
-                //    Invalidate( );
-                //    return;
-                //}
 
-                if (states["power"]) {//&& new List<string>{"0", "1","2","3","4","5","6","7","8","9" }.Contains(key)){
+                if (states["power"]) {
                     key = GraphicsUtils.ToSuper(key);
                 }
 
-                if (states["base"]) {//&& new List<string>{"0", "1","2","3","4","5","6","7","8","9" }.Contains(key)){
+                if (states["base"]) {
                     key = GraphicsUtils.ToSub(key);
                 }
-
-                //if (states["root"])
-                //    key = "√";
-                //states["root"] = false;
-
-                //if (states["pi"])
-                //    key = "π";
-                //states["pi"] = false;
 
                 keysIn.Add(key);
 
@@ -671,63 +528,39 @@ namespace DustBlowerClient {
                 }
 
                 string inputSoFar = String.Join("", keysIn);
-                //  inputSoFar aiming for ONE answerChunk element...
-                //  Compare inputSoFar against any or next (first) 
-                //  answerChunk element from every questions' answer(s)...
 
                 KeysArgsRtns rtns = new KeysArgsRtns { hit = false, keepIt = false, Exit = true, IsSequence = false };
                 rtns.InputSoFar = inputSoFar;
-                // var visiterator = walkerFactory.CreateWalker( question );
 
                 //KeysWalker = new TreeWalker<wfNode, KeysArgsRtns>();
-
                 //KeysWalker.RowOp=KeysProcessRows;
+
                 for (int i = 0; i < questions.Count; i++) { // each question...
                     if (!selection || questions[i].id == selectedQuestion.id) {
                         foreach (wfPossibleAnswer possAnswer in questions[i].wfPossibleAnswers) { //List of correct answers
-                            #region pseudo
-                            // for each answerable answerChunk (sequence of terms) in (only) the next Row...
-                            // A for loop ... that loops over the RowOrCols Columns...
-                            //                      loops over the RowOrCols Rows...
-                            //                      until it finds the first unanswered row...
-                            //                          loops the answerChunk collection for that row...
-                            //                          matches each element against InputSoFar...
-                            //                              Yes: 'True's' the first answered element found in that Row
-                            //                                     marks Row as answered if all answerChunks are True'd
-                            //                          marks question as answered if all Rows are answered
-                            //                      breaks/continues
-                            // Yes.
-                            //for( int arc=0; arc<ap.answerRowsCols.Count; i++ ){
-                            //    rtns=SomethingRecurseyWithLotsOfArgmentsAndReturnVals( ap, ap.answerRowsCols[ arc ], inputSoFar );
-                            //    //break check
-                            //}
-                            #endregion
-                            // All this traversal, every time, for just one answerChunk search/update...
+
                             rtns.Exit = false;
                             rtns.IsSequence = possAnswer.IsSequence;
-                            // Loop answer
-                            //    Loop rows (2)
-                            //       Loop chunks
 
-
-                            // ONE keypress (passing one (or more) keys/digits)
                             KeysWalker = (ITreeWalker<wfNode, KeysArgsRtns>)keysFactory.GetWalker(questions[i].iquestion.genus);
                             keysFactory.GetWalkerOps(questions[i].iquestion.genus, KeysWalker);
+
                             rtns = KeysWalker.Traverse(possAnswer.answer, rtns);
-                            // answers (maybe) ONE value (int/double, num, denom, row in matrix)
+
                             inKeysColour= rtns.inKeysColour;
 
 
                             Draw();
-                            if (rtns.hit) { // chunk hit, Row updated...
-                                break;//continue?
+                            if (rtns.hit) { // hit, Row updated...
+                                break;
                             }
                             // if possibleAnswer doesn't hit, it will loop to the next one...
                             // ...first come, first served, if any...
                             #region unload
                         } // each possibleAnswer
-                    } // selected/all...?
-                    if (rtns.hit) { // something hit..  ( and updated the chunk )
+                    } 
+
+                    if (rtns.hit) { // something hit..  ( and updated )
                         if (questions[i].IsAnswered()) { // All Rows in one ( any ) of the possible answers answered?
                             states["power"] = false;
                             states["base"] = false;
@@ -744,7 +577,7 @@ namespace DustBlowerClient {
                         keysIn.Clear();
                         Draw();
                         return;
-                    } // chunk hit...?
+                    } // hit...?
                     // else  
                     //      nothing hit...
                     //      but don't return because we still (might) have other questions
@@ -753,7 +586,7 @@ namespace DustBlowerClient {
                 rtns.hit = false;
                 if (!rtns.keepIt) // keepIt refers to inputSoFar... can only keep if partially matched but didn't hit...
                     inKeysColour = Color.Red; //Wrong answer, selected ( or all ) question(s). ( or matched completely )
-            } // lock( questions )
+            } 
         }
 
         private void ShowAnswers() {
@@ -787,7 +620,6 @@ namespace DustBlowerClient {
                     g.Clear(Color.Black);
                     for (int i = 0; i < questions.Count; i++) {
                         if (questions[i].Deleted) {
-                            //lock(questions){ //locked in caller
                             if (questions[i].Selected) {
                                 selection = false;
                             }
@@ -878,7 +710,7 @@ namespace DustBlowerClient {
                     qAtts = Attribute.GetCustomAttributes(q);
                     foreach (Attribute qAtt in qAtts) {
                         if (qAtt.GetType().Name == "NaturalName") {
-                            // -- Font + fonts playing up fix ------------------
+                            // -- Font + fonts playing up in mono fix ------------------
                             //if( new string[ ]{"x², x³",
                             //                "xⁿ",
                             //                "xᵐ + xⁿ",
@@ -1144,11 +976,6 @@ namespace DustBlowerClient {
         public void hndlStopClick(object sender, EventArgs e) {
             if (keyJustPressed == "Space")
                 return;
-            //Task.Factory.StartNew( ( ) => {
-            //    Thread.Sleep( 500 );
-            //    readyQuestions.Add( qbCancel );
-            //} );
-            //SomeNamedThreadsStoppingTokenSource.Cancel( );
             lock (factories)
                 factories.Clear();
             lock (questions)
@@ -1159,13 +986,6 @@ namespace DustBlowerClient {
 
             stopBtn.Enabled = false;
             goBtn.Enabled = true;
-
-            //Task.Factory.StartNew( ( ) => {
-            //    System.Threading.Thread.Sleep( 200 ); //TODO: Can't remember..
-            //    TimeTimer.Stop( );
-            //    stopBtn.Enabled = false;
-            //    goBtn.Enabled = true;
-            //} );
         }
         // -- Controls btns --
         public void hndlHintsClick(object sender, EventArgs e) { ShowHints(); }

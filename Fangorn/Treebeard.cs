@@ -8,7 +8,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MathUtils;
-//using static Fangorn.Original<TNode, TNodeTo>;
 
 namespace Fangorn {
 

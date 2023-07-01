@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Gregg-added stuff
+Fangorn/Notes.txt
+whatever/Notes.txt
