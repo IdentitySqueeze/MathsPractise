@@ -1,0 +1,422 @@
+﻿    public class qParamsForm : Form{
+        public qParameters qParams {get; set; }
+        public bool[] qParamsMask { get; set; }
+        public Font font {get; set; } = new Font("Verdana",7);
+
+        //TODO: cog-making switch code
+        //TODO: mask-applying code
+        //TODO: 
+        //TODO: 
+        //TODO: bung a factory in here
+        //TODO: update factory for mask, qName, qList, defaultqParams
+        //TODO:     or create a FactoryTellerAbouter class/concept that bolts on....
+
+        //public qParamsForm(qParameters qparams, bool[] mask){
+        public qParamsForm(){
+            //qParams=qparams;
+            //qParamsMask=mask;
+
+            //Might need to make modal..
+            this.SetStyle( ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.DoubleBuffer, true);
+            this.KeyPreview=true;//?
+
+            //Might need to make vertically scrolling..
+            TableLayoutPanel p=new TableLayoutPanel();
+            p.ColumnCount=1;
+            this.Controls.Add(p);
+
+            Panel topPanel = new Panel();
+            topPanel.Size=new Size(ClientSize.Width,25);
+            //topPanel.BackColor=Color.Green;
+
+            Label lblTitle=new Label();
+            lblTitle.Text = "Question Parameters";
+            lblTitle.AutoSize=true;
+            lblTitle.Location=new Point((this.ClientSize.Width-lblTitle.Width)/2,0);
+            //lblTitle.BackColor=Color.Magenta;
+
+            topPanel.Controls.Add(lblTitle);
+
+            TableLayoutPanel primsPanel = new TableLayoutPanel();
+            primsPanel.Width=ClientSize.Width;
+            primsPanel.RowCount=1;
+            primsPanel.ColumnCount=2;
+            //botPanel.BackColor=Color.Red;
+            //primsPanel.AutoSize=true;
+
+            TableLayoutPanel namePanel = new TableLayoutPanel();
+            TableLayoutPanel controlPanel = new TableLayoutPanel();
+
+            //namePanel.BackColor=Color.Yellow;
+            //controlPanel.BackColor=Color.Pink;
+            //namePanel.AutoSize=true;
+            //controlPanel.AutoSize=true;
+            namePanel.Width=ClientSize.Width/2;
+            controlPanel.Width=ClientSize.Width/2;
+
+            primsPanel.Controls.Add(namePanel);
+            primsPanel.Controls.Add(controlPanel);
+
+            // --------------
+            Label lblCtrl=new Label();
+            lblCtrl.Text="paramPropName";
+            lblCtrl.Height=25;
+            lblCtrl.Width=GetWidth("paramPropName", lblCtrl);
+            lblCtrl.Font = font;
+            TextBox tb=new TextBox();
+            tb.Height=25;
+
+            
+            namePanel.Controls.Add(Jig(lblCtrl));
+            controlPanel.Controls.Add(Jig(tb));
+
+            // --------------
+            Label lblBool=new Label();
+            lblBool.Text="boolPropName";
+            lblBool.Font = font;
+            lblBool.Width=GetWidth("boolPropName", lblBool);
+            lblBool.Height=25;
+            CheckBox boolChk=new CheckBox();
+            boolChk.Height=25;
+
+            namePanel.Controls.Add(Jig(lblBool));
+            controlPanel.Controls.Add(Jig(boolChk));
+
+            // --------------
+
+            Label lblCtrl2=new Label();
+            lblCtrl2.Text="paramPropName";
+            lblCtrl2.Height=25;
+            lblCtrl2.Width=GetWidth("paramPropName", lblCtrl2);
+            lblCtrl2.Font = font;
+            TextBox tb2=new TextBox();
+            tb2.Height=25;
+
+            
+            namePanel.Controls.Add(Jig(lblCtrl2));
+            controlPanel.Controls.Add(Jig(tb2));
+
+            // --------------
+            //Label lblBool2=new Label();
+            //lblBool2.Text="boolPropName";
+            //lblBool2.Font = font;
+            //lblBool2.Width=GetWidth("boolPropName", lblBool2);
+            //lblBool2.Height=25;
+            //CheckBox boolChk2=new CheckBox();
+            //boolChk2.Height=25;
+
+            //namePanel.Controls.Add(Jig(lblBool2));
+            //controlPanel.Controls.Add(Jig(boolChk2));
+
+            //// --------------
+            //Label lblBool3=new Label();
+            //lblBool3.Text="boolPropName";
+            //lblBool3.Font = font;
+            //lblBool3.Width=GetWidth("boolPropName", lblBool3);
+            //lblBool3.Height=25;
+            //CheckBox boolChk3=new CheckBox();
+            //boolChk3.Height=25;
+
+            //namePanel.Controls.Add(Jig(lblBool3));
+            //controlPanel.Controls.Add(Jig(boolChk3));
+
+            //// --------------
+            //Label lblBool4=new Label();
+            //lblBool4.Text="boolPropName";
+            //lblBool4.Font = font;
+            //lblBool4.Width=GetWidth("boolPropName", lblBool4);
+            //lblBool4.Height=25;
+            //CheckBox boolChk4=new CheckBox();
+            //boolChk4.Height=25;
+
+            //namePanel.Controls.Add(Jig(lblBool4));
+            //controlPanel.Controls.Add(Jig(boolChk4));
+
+            //// --------------
+            //Label lblBool5=new Label();
+            //lblBool5.Text="boolPropName";
+            //lblBool5.Font = font;
+            //lblBool5.Width=GetWidth("boolPropName", lblBool5);
+            //lblBool5.Height=25;
+            //CheckBox boolChk5=new CheckBox();
+            //boolChk5.Height=25;
+
+            //namePanel.Controls.Add(Jig(lblBool5));
+            //controlPanel.Controls.Add(Jig(boolChk5));
+
+            // --------------
+            p.Controls.Add(topPanel);
+            p.Controls.Add(primsPanel);
+
+            Button btnSave = new Button();
+            Button btnCanc=new Button();
+            btnSave.Text="Save";
+            btnCanc.Text="Cancel";
+            btnSave.Font=font;
+            btnCanc.Font=font;
+            btnSave.Width=this.Width/2-7;
+            btnCanc.Width=this.Width/2-7;
+            btnSave.Padding=new Padding(0);
+            btnSave.Margin=new Padding(0);
+            btnCanc.Padding=new Padding(0);
+            btnCanc.Margin=new Padding(0);
+
+            TableLayoutPanel botPanel=new TableLayoutPanel();
+            botPanel.Width=ClientSize.Width;
+            botPanel.ColumnCount=2;
+            botPanel.Controls.Add(btnSave);
+            botPanel.Controls.Add(btnCanc);
+            p.Controls.Add(botPanel);
+
+            int primsCount=3;
+            primsPanel.Size=new Size(ClientSize.Width,primsCount*20+50);
+            namePanel.Size=new Size(ClientSize.Width/2,primsCount*20+50);
+            controlPanel.Size=new Size(ClientSize.Width/2,primsCount*20+50);
+            botPanel.Size=new Size(ClientSize.Width,25);
+            p.Size=new Size(ClientSize.Width,topPanel.Height+primsPanel.Height+botPanel.Height+50);
+            this.Size=new Size(ClientSize.Width,p.Height);
+
+            // -- numberRanges --
+            // ssovslcwtf ssovslcwtf = new ssovslcwtf(); //some sort of vertically scrollable list control with two fields
+            // ssovslcwtf.DataSource=qParams.numberRanges; //Might need massaging in & out
+            // p.Controls.Add(ssovslcwtf);
+            // 
+            // -- prims --
+            //ChunkOfGui cog=new cog();
+            //for(i=1){
+            //  ashsp.Left.Add(qParams.Fields.reflect(FieldName));
+            //  switch(qParams.Fields.reflect(FieldType))
+            //    case bool :   cog=AddBool();   break;
+            //    case string : cog=AddString(); break; //Scuppered for validation. I'm talking to you, ops.
+            //    case int :    cog=AddInt();    break;
+            //    default : //New thing!
+            //  }
+            //  ashsp.Right.Add(cog);
+            //  if(!mask[i])
+            //     cog.enabled=false;
+            //} 
+            // 
+        }
+        private Panel Jig(Control ctrl){
+            Panel jig=new Panel();
+            //jig.AutoSize=true;
+            jig.Width=ctrl.Width;
+            jig.Height=25;
+            jig.Controls.Add(ctrl);
+            jig.Padding=new Padding(0);
+            jig.Margin=new Padding(0);
+            return jig;
+        }
+        private int GetWidth(string text, Control ctrl){
+            Rectangle nullRect = new Rectangle(0,0,0,0);
+            Graphics g = ctrl.CreateGraphics();
+            StringFormat strFmt2=new StringFormat();
+            strFmt2.SetMeasurableCharacterRanges(new CharacterRange[]{new CharacterRange(0,text.Length) });
+            Region[] region = g.MeasureCharacterRanges(text,font, nullRect, strFmt2);
+            return (int)region.Select(r=>r.GetBounds(g).Width).Sum();
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+            private void rivetsBasicPanelPaint(Graphics g){ 
+            Point tl = new Point(this.Location.X,this.Location.Y);
+            Point tr = new Point(this.Location.X+(this.Width-50),this.Location.Y);
+            Point bl = new Point(this.Location.X,this.Location.Y+(this.Height-50));
+            Point br = new Point(this.Location.X+(this.Width-50),this.Location.Y+(this.Height-50));
+            Pen dPen= new Pen(Color.Navy);
+            Pen lPen=new Pen(Color.MediumSlateBlue);
+
+            g.DrawEllipse(dPen, new Rectangle(tl,new Size(10,10)));
+            g.DrawEllipse(dPen, new Rectangle(tr,new Size(10,10)));
+            g.DrawEllipse(dPen, new Rectangle(bl,new Size(10,10)));
+            g.DrawEllipse(dPen, new Rectangle(br,new Size(10,10)));
+        }
+        
+        
+        
+                public static int[] PrimeFactorsOld(int num){
+            List<int> rtn = new List<int>();
+            if(num>maxPrime){
+                for(int i=0;primes[i]<maxPrime; i++){
+                    if(num-(num/primes[i])*primes[i]==0){
+                        rtn.Add(primes[i]);
+                 //       num/=primes[i];
+                 //       i=-1;
+                    }
+                }
+                //int halfNum=num/2;
+                for(int i=maxPrime;i<=num/2;i++)
+                    if(num-(num/i)*i==0)
+                        rtn.Add(i);
+            }else{
+                for(int i=0;num>=primes[i]; i++){
+                    if(num-(num/primes[i])*primes[i]==0){
+                        rtn.Add(primes[i]);
+                        num/=primes[i];
+                        i=-1;
+                    }
+                }
+            }
+            if(rtn.Count()==0)
+                rtn.Add(num);
+            return rtn.ToArray();
+        }
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+    public class LaterWalker<T> where T: IWalkerArgsRtns {
+        #region decs
+        public List<answerRowOrColumn> answerRowsCols{ get; set; }
+        //public Func<List<answerRowOrColumn>, string, T, T> ColumnOp { get; set; }
+        //public Func<List<answerRowOrColumn>, string, T, T> RowOp { get; set; }
+        public Func<answerRowOrColumn, string, T, T> ColumnOp { get; set; }
+        public Func<answerRowOrColumn, string, T, T> RowOp { get; set; }
+        //public List<Action<List<answerRowOrColumn>>> PreTraversalOps { get; set; }
+        //public List<Action<List<answerRowOrColumn>>> PostTraversalOps { get; set; }
+        #endregion
+        public T Traverse(  List<answerRowOrColumn> arcs){
+            T rtn = new T();
+            foreach(  answerRowOrColumn arc in arcs ){ // This is across...
+                if( arc.IsEmpty  ) { // There's no Rows...
+                    rtn = ColumnOp( arc, inputSoFar, rtn ) ; // for empty columns
+                    rtn = Traverse(  arc.answerColumns, inputSoFar );   // This is Down...
+                }else{ // There are Rows, 1 or 2.
+                    rtn = ColumnOp( arc, inputSoFar, rtn ) ; // for populated columns
+                    rtn = RowOp( arc, inputSoFar, rtn ) ; // arc.answered queryable here...
+                }
+                if( rtn.Bail )
+                    return rtn;
+            }
+            return rtn;
+        }
+        public T Cancel(  List<answerRowOrColumn> arcs){
+            T rtn = new T();
+            // Breadth first...
+            // Starting with basic fraction arithmetic:
+            //      n-fractions, no brackets, no algebra, cancellation question
+            //    Create iterators for finding subsets of columns pertinent to
+            //         specific ops that can be done on the structure
+            //    Loop any subsets of mult columns
+            //        multIterator = aggregate.createMultIterator( );
+            //        subsets = new agg<subset>(  ) 
+            //             public multIterator createMultIterator( ){
+            //                 foreach( var ss in createMultSubsets( ) ) //.ToList( ) ... ?
+            //                     yield return ss
+            //
+            //             private List<subset> createMultSubsets( ){
+            //                 foreach( col in sibling Columns-1 )
+            //                     if( col.op == mult )
+            //                         yield return col //updateable
+            //                 yield return col         //updateable
+            //          
+            //                 foreach( var ss in { ( ) =>
+            //                     foreach( col in sibling Columns-1 )
+            //                          if( col.op == mult )
+            //                               yield return col //updateable
+            //                     yield return col           //updateable
+            //                 } ) //.ToList( ) ... ?
+            //                     yield return ss
+            //          
+            //    A flag to force the intification of misrepresented fractions, or round
+            //          
+            //    Build a list of roots: (single ops against original data, no rows hit twice...)
+            //       Vertical, 1.. ColCount diagonals.
+            //    Every tree starts with its own copy of arcs
+            //    Every node has its own copy of arcs + the ops operated on it.
+            //        for really big expressions...
+            //           keep an op list and the score but not the data?
+            //           bit like cqrs or whatever it's called
+            //           recalculate from scratch and discard each time.
+            //           sacrifice running time for survivable memory size?
+            //    Run every root against every other root.
+            //        store in a second node layer per root (double ops)
+            //    Run every root against every 2nd layer entry under every other root.
+            //        store in a 3rd node layer under every 2nd layer node (triple ops)
+            //    ...
+            //    source data    a/b     c/d     e/f
+            //    roots            ( a/b     c/d     e/f )   Verticles
+            //                      ( a/d     c/f )             Diagonals 1-gaps righties
+            //                      ( c/b     f/d )             Diagonals 1-gaps lefties
+            //                      ( a/f      e/b )            Diagonals 2-gaps
+            //    check text books.
+            //    2-ops          root results plus other root ops
+            //    keep going until no more movement or count limit hit
+            //    every node has a score
+            // choose the 'winner'
+            //     the one with the most reduction ops...
+            //     the one with the smallest num, den sums across the whole structure...
+            // Just here for the maths.
+            // -- Verticals --
+            foreach( answerRowOrColumn arc in arcs ){
+                if( arc.answerRows.Count==1 ){ // -- Fractionify if necessary --
+                    var fractionify = new answerRowOrColumn( );
+                    var ch= new answerChunk( 0, 0, "1", false);
+                    fractionify.answerRowChunks.Add(ch);
+                    arc.answerRows.Add( fractionify );
+                }
+                long num=0, den=0;
+                long.TryParse(arc.answerRows[0].answerRowChunks[0].elementChunk, out num);
+                long.TryParse(arc.answerRows[1].answerRowChunks[0].elementChunk, out den);
+                var fr = new Fraction(num,den); // Use fraction auto-reduce..
+                var chunk = new answerChunk();
+                if( fr.numerator != num){
+                    // Put-back rigmarole --
+                    chunk = arc.answerRows[0].answerRowChunks[0];
+                    chunk.elementChunk = ""+fr.denominator;
+                    arc.answerRows[1].answerRowChunks[0] = chunk;
+                }
+                if( fr.denominator != den ){
+                    // Put-back rigmarole --
+                    chunk = arc.answerRows[1].answerRowChunks[0];
+                    chunk.elementChunk = ""+fr.denominator;
+                    arc.answerRows[1].answerRowChunks[0] = chunk;
+                }
+            }
+            return rtn;
+        }
+    }
+
