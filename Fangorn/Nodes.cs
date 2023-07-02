@@ -4,6 +4,12 @@ using System.Drawing;
 
 namespace Fangorn {
     class WantMain { [STAThread] public static void Main(string[] args) { } }
+    public interface IPossibleAnswer<TNode> {
+        List<TNode> answer { get; set; }
+        TNode answerNode { get; set; }
+        bool IsSequence { get; set; }
+        bool uniformSize { get; set; }
+    }
     public interface INode<TNode>{
         List<TNode> columns{ get; set; } // LC
         List<TNode> rows{ get; set; } // RS (1 x num, 1 x den )
@@ -66,5 +72,4 @@ namespace Fangorn {
         grouping,
         exponent   //Currently for rows. Put on columns too..? Exponents are added to both.
     }
-
 }

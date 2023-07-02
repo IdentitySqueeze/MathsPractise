@@ -20,6 +20,22 @@ namespace Fangorn {
         public class OriginalTreeWalker<TNode, TRtn> : ITreeWalker<TNode, TRtn>
                      where TRtn : IWalkerArgsRtns
                      where TNode : INode<TNode> {
+            public TRtn Traverse(Genus genus, IPossibleAnswer<TNode> possibleAnswer, TRtn rtn) {
+                switch (genus) {
+                    case Genus.OriginalClient:
+                        rtn=  Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.OriginalService:
+                        rtn= Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.NewStructure:
+                        rtn=Traverse(possibleAnswer.answerNode, rtn);
+                        break;
+                    default:
+                        break;
+                }
+                return rtn;
+            }
             public TRtn Traverse(TNode nodeIn, TRtn rtn, int depth = 0) => rtn;
             public TRtn Traverse(List<TNode> arcs, TRtn rtn, int depth = 0) {
                 //----------------------------------
@@ -61,6 +77,22 @@ namespace Fangorn {
         public class WalkNodeInEverythingRow<TNode, TRtn> : ITreeWalker<TNode, TRtn>
              where TRtn : IWalkerArgsRtns
              where TNode : INode<TNode> {
+            public TRtn Traverse(Genus genus, IPossibleAnswer<TNode> possibleAnswer, TRtn rtn) {
+                switch (genus) {
+                    case Genus.OriginalClient:
+                        rtn=  Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.OriginalService:
+                        rtn= Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.NewStructure:
+                        rtn=Traverse(possibleAnswer.answerNode, rtn);
+                        break;
+                    default:
+                        break;
+                }
+                return rtn;
+            }
             public TRtn Traverse(TNode nodeIn, TRtn rtn, int depth = 0) {
                 //----------------------------------------------
                 //Convert, measure, layout, draw, keys, evaluate
@@ -75,24 +107,28 @@ namespace Fangorn {
                     // Every column has minimum one row
                     for (int j = 0; j<node.rows.Count; j++) {
                         //if leaf
-                        //    // Down to the nodeValue
-                        //    // Leaf means no columns (leaves/nodeValues can still be bracketted, rooted etc)
-                        //    rtn = RowOp(node, rtn);
-                        //else
-                        //   // This row has columns (an expression, not a nodeValue)
-                        //   // Columns (individuals, groups) can be bracketted, rooted etc.
-                        //
-                        //         // Is the column bracketted/rooted etc?   // <- put this in an op
-                        //         if( bracketted / rooted )                 // <- put this in an op
-                        //         Process decoration( )                     // <- put this in an op
-                        //
-                        //   rtn = columnOp(node, rtn);
-                        //
-                        //   // Recurse
-                        //   rtn = Traverse(node, rtn, depth);   
-                        //
-                        //   // maybe post ColumnOp for bracket ends
-                        //
+                        if (node.IsLeaf) {
+                            //    // Down to the nodeValue
+                            //    // Leaf means no columns (leaves/nodeValues can still be bracketted, rooted etc)
+                            rtn = RowOp(node, rtn);
+                        } else {
+                            //   // This row has columns (an expression, not a nodeValue)
+                            //   // Columns (individuals, groups) can be bracketted, rooted etc.
+                            //
+                            //         // Is the column bracketted/rooted etc?   // <- put this in an op
+                            //         if( bracketted / rooted )                 // <- put this in an op
+                            //         Process decoration( )                     // <- put this in an op
+                            //
+                            rtn = PreColumnOp(node, rtn);
+                            //
+                            //   // Recurse
+                            depth--;
+                            rtn = Traverse(node, rtn, depth);
+                            depth++;
+                            //
+                            //   // maybe post ColumnOp for bracket ends
+                            rtn = PostColumnOp(node, rtn);
+                        }
                     }
                     if (rtn.Exit) return rtn;
                 }
@@ -112,6 +148,22 @@ namespace Fangorn {
         public class NewTreeWalkerNotHasRows<TNode, TRtn> : ITreeWalker<TNode, TRtn>
              where TRtn : IWalkerArgsRtns
              where TNode : INode<TNode> {
+            public TRtn Traverse(Genus genus, IPossibleAnswer<TNode> possibleAnswer, TRtn rtn) {
+                switch (genus) {
+                    case Genus.OriginalClient:
+                        rtn=  Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.OriginalService:
+                        rtn= Traverse(possibleAnswer.answer, rtn);
+                        break;
+                    case Genus.NewStructure:
+                        rtn=Traverse(possibleAnswer.answerNode, rtn);
+                        break;
+                    default:
+                        break;
+                }
+                return rtn;
+            }
             public TRtn Traverse(List<TNode> nodes, TRtn rtn, int depth = 0) {
                 //----------------------------------------------
                 //Convert, measure, layout, draw, keys, evaluate
@@ -163,7 +215,7 @@ namespace Fangorn {
                     case Genus.OriginalService:
                         throw new NotImplementedException();
                     case Genus.NewStructure:
-                        convertWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, ConvertArgsRtns<TNodeTo>>();
+                        convertWalker = (ITreeWalker<TNode, TRtns>)new WalkNodeInEverythingRow<TNode, ConvertArgsRtns<TNodeTo>>();
                         break;
                     default:
                         break;
@@ -247,7 +299,7 @@ namespace Fangorn {
                         measureWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, MeasureArgsRtns>();
                         break;
                     case Genus.NewStructure:
-                        measureWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, MeasureArgsRtns>();
+                        measureWalker = (ITreeWalker<TNode, TRtns>)new WalkNodeInEverythingRow<TNode, MeasureArgsRtns>();
                         break;
                     default:
                         break;
@@ -405,7 +457,7 @@ namespace Fangorn {
                         layoutWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, SizeArgsRtns>();
                         break;
                     case Genus.NewStructure:
-                        layoutWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, SizeArgsRtns>();
+                        layoutWalker = (ITreeWalker<TNode, TRtns>)new WalkNodeInEverythingRow<TNode, SizeArgsRtns>();
                         break;
                     default:
                         break;
@@ -950,7 +1002,7 @@ namespace Fangorn {
                     case Genus.OriginalService:
                         throw new NotImplementedException();
                     case Genus.NewStructure:
-                        keysWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, KeysArgsRtns>();
+                        keysWalker = (ITreeWalker<TNode, TRtns>)new WalkNodeInEverythingRow<TNode, KeysArgsRtns>();
                         break;
                     default:
                         break;

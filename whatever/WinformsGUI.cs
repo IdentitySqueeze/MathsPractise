@@ -86,10 +86,12 @@ namespace DustBlowerClient {
             convertFactory.GetWalkerOps(iquestion.genus, convertWalker);
 
             // run the converter
-            foreach (possibleAnswer possAnswer in iquestion.possibleAnswers) {
+            foreach (possibleAnswer<qColumn> possAnswer in iquestion.possibleAnswers) {
                 convertRtn = new ConvertArgsRtns<wfNode>();
                 convertRtn.currentNode = new wfNode(); // dummy root
-                convertRtn = convertWalker.Traverse(possAnswer.answer, convertRtn);
+                //convertRtn = convertWalker.Traverse(possAnswer.answer, convertRtn);
+                convertRtn = convertWalker.Traverse(iquestion.genus, possAnswer, convertRtn);
+
                 wfPossibleAnswer wfPossAnswer = new wfPossibleAnswer();
                 wfPossAnswer.answer.AddRange(convertRtn.currentNode.columns);
                 wfPossAnswer.IsSequence = possAnswer.IsSequence;

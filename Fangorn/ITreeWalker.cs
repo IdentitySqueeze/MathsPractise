@@ -11,6 +11,7 @@ namespace Fangorn {
         Func<TNode, TRtn, TRtn> PreRowOp { get; set; }
         Func<List<TNode>, TRtn, TRtn> PreTraversalOp { get; set; }
         Func<TNode, TRtn, TRtn> RowOp { get; set; }
+        TRtn Traverse(Genus genus, IPossibleAnswer<TNode> pa, TRtn rtn);
         TRtn Traverse(List<TNode> arcs, TRtn rtn, int depth = 0);
         TRtn Traverse(TNode arc, TRtn rtn, int depth = 0);
     }
