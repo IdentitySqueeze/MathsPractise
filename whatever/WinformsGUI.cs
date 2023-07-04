@@ -90,10 +90,13 @@ namespace DustBlowerClient {
                 convertRtn = new ConvertArgsRtns<wfNode>();
                 convertRtn.currentNode = new wfNode(); // dummy root
                 //convertRtn = convertWalker.Traverse(possAnswer.answer, convertRtn);
+                wfPossibleAnswer wfPossAnswer = new wfPossibleAnswer();
                 convertRtn = convertWalker.Traverse(iquestion.genus, possAnswer, convertRtn);
 
-                wfPossibleAnswer wfPossAnswer = new wfPossibleAnswer();
-                wfPossAnswer.answer.AddRange(convertRtn.currentNode.columns);
+                convertFactory.assignConversionResult(iquestion.genus, wfPossAnswer, convertRtn);
+                //wfPossAnswer.answer.AddRange(convertRtn.currentNode.columns);
+                //wfPossAnswer.answerNode = convertRtn.currentNode;
+
                 wfPossAnswer.IsSequence = possAnswer.IsSequence;
                 wfPossAnswer.uniformSize= possAnswer.uniformSize;
                 wfPossibleAnswers.Add(wfPossAnswer);
@@ -112,7 +115,8 @@ namespace DustBlowerClient {
             foreach (wfPossibleAnswer possAnswer in wfPossibleAnswers) {
                 measureRtn = new MeasureArgsRtns();
                 measureRtn.Height = letterHeight;
-                measureRtn = measureWalker.Traverse(possAnswer.answer, measureRtn);
+                //measureRtn = measureWalker.Traverse(possAnswer.answer, measureRtn);
+                measureRtn = measureWalker.Traverse(iquestion.genus, possAnswer, measureRtn);
             }
             #endregion
 
@@ -123,14 +127,14 @@ namespace DustBlowerClient {
 
             // run layout
             foreach (wfPossibleAnswer possAnswer in wfPossibleAnswers) {
-                sizeRtn = new SizeArgsRtns(); //T
-                                              //his would be a problem..
+                sizeRtn = new SizeArgsRtns(); //This would be a problem with actual multiple answers..
                 sizeRtn.Height = letterHeight;
                 if (possAnswer.uniformSize) {
                     sizeRtn.uniformSize = possAnswer.uniformSize;
-                    sizeRtn.uniformedWidth = possAnswer.answer.Max(ans => ans.rows.Max(ar => ar.rowLen));
+                    sizeRtn.uniformedWidth = 30;// possAnswer.answer.Max(ans => ans.rows.Max(ar => ar.rowLen));
                 }
-                sizeRtn = layoutWalker.Traverse(possAnswer.answer, sizeRtn);
+                //sizeRtn = layoutWalker.Traverse(possAnswer.answer, sizeRtn);
+                sizeRtn = layoutWalker.Traverse(iquestion.genus, possAnswer, sizeRtn);
             }
             queWidth = Math.Max(iquestion.askBitmap.Width, sizeRtn.Width);
             queHeight = iquestion.askBitmap.Height+sizeRtn.Height;
@@ -243,7 +247,8 @@ namespace DustBlowerClient {
 
             using (Graphics gr = Graphics.FromImage(drawRtn.Bitmap)) {
                 drawRtn.ansBackBuffer = gr;
-                drawRtn = drawWalker.Traverse(wfPossibleAnswers[0].answer, drawRtn); // <-- Drawing (bitmap construction) is in here...
+                //drawRtn = drawWalker.Traverse(wfPossibleAnswers[0].answer, drawRtn); // <-- Drawing (bitmap construction) is in here...
+                drawRtn = drawWalker.Traverse(iquestion.genus, wfPossibleAnswers[0], drawRtn); // <-- Drawing (bitmap construction) is in here...
                 DrawPostTraversal(wfPossibleAnswers[0].answer, drawRtn);
             }
 

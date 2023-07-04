@@ -4,8 +4,9 @@ using System.Linq;
 using Fangorn;
 
 namespace DustBlowerClient {
-    public class wfPossibleAnswer {
+    public class wfPossibleAnswer : IPossibleAnswer<wfNode> {
         public List<wfNode> answer { get; set; } = new List<wfNode> { };
+        public wfNode answerNode { get; set; }
         public bool IsSequence { get; set; } = false;
         public bool uniformSize { get; set; } = false;
     }

@@ -81,36 +81,40 @@ namespace Fangorn {
                 switch (genus) {
                     case Genus.OriginalClient:
                         rtn=  Traverse(possibleAnswer.answer, rtn);
+
                         break;
                     case Genus.OriginalService:
                         rtn= Traverse(possibleAnswer.answer, rtn);
+
                         break;
                     case Genus.NewStructure:
                         rtn=Traverse(possibleAnswer.answerNode, rtn);
+
                         break;
                     default:
                         break;
                 }
                 return rtn;
             }
+
             public TRtn Traverse(TNode nodeIn, TRtn rtn, int depth = 0) {
                 //----------------------------------------------
                 //Convert, measure, layout, draw, keys, evaluate
                 //----------------------------------------------
                 rtn.depth = depth;
                 //if (depth==0) {
-                //rtn= PreTraversalOp(nodeIn, rtn);
+                //rtn= PreTraversalOp(nodeIn, rtn); //Op on the outer node
                 //}
+                rtn = PreColumnOp(nodeIn, rtn);
 
-                for (int i = 0; i<nodeIn.columns.Count; i++) { // This is across...
+                for (int i = 0; i<nodeIn.columns.Count; i++) { // 5 columns
                     TNode node = nodeIn.columns[i];
-                    // Every column has minimum one row
-                    for (int j = 0; j<node.rows.Count; j++) {
+                    for (int j = 0; j<node.rows.Count; j++) {  // 2 rows
                         //if leaf
                         if (node.IsLeaf) {
                             //    // Down to the nodeValue
                             //    // Leaf means no columns (leaves/nodeValues can still be bracketted, rooted etc)
-                            rtn = RowOp(node, rtn);
+                            rtn = RowOp(node.rows[j], rtn); // Now a single row operation
                         } else {
                             //   // This row has columns (an expression, not a nodeValue)
                             //   // Columns (individuals, groups) can be bracketted, rooted etc.
@@ -119,7 +123,7 @@ namespace Fangorn {
                             //         if( bracketted / rooted )                 // <- put this in an op
                             //         Process decoration( )                     // <- put this in an op
                             //
-                            rtn = PreColumnOp(node, rtn);
+                            //rtn = PreColumnOp(node, rtn);
                             //
                             //   // Recurse
                             depth--;
@@ -127,11 +131,12 @@ namespace Fangorn {
                             depth++;
                             //
                             //   // maybe post ColumnOp for bracket ends
-                            rtn = PostColumnOp(node, rtn);
+                            //rtn = PostColumnOp(node, rtn);
                         }
                     }
                     if (rtn.Exit) return rtn;
                 }
+                rtn = PostColumnOp(nodeIn, rtn);
                 return rtn;
             }
             public TRtn Traverse(List<TNode> arcs, TRtn rtn, int depth = 0) => rtn;
@@ -232,7 +237,7 @@ namespace Fangorn {
                     case Genus.OriginalService:
                         throw new NotImplementedException();
                     case Genus.NewStructure:
-                        convertWalker.RowOp = ClientConvertRowOp;
+                        convertWalker.RowOp = NewConvertRowOp;
                         convertWalker.PreColumnOp = ConvertPreColumnOp;
                         convertWalker.PostColumnOp = ConvertPostColumnOp;
                         break;
@@ -241,14 +246,28 @@ namespace Fangorn {
                 }
             }
             public ConvertArgsRtns<TNodeTo> ConvertPreColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+
+                // Copy incoming node to new node
+
                 TNodeTo node = new TNodeTo();
                 node.colType = answerCol.colType;
                 node.from= answerCol.from;
                 node.to= answerCol.to;
                 node.Infinity= answerCol.Infinity;
+
+                // Add new node to (rtn) CurrentNode's columns (its parent)
+
                 rtn.currentNode.columns.Add(node);
+
+                // Explicitly set (rtn) CurrentNode as new node's parent
+
                 node.parent = rtn.currentNode;
+                
+                // Make new node the (rtn) CurrentNode
+                
                 rtn.currentNode = node;
+
+                // Between here and postColumn will be a traverse on incomingNodes' columns
 
                 //if (answerCol.colType==ColTyp.bracket && answerCol.rows.Count>0) { // old powered bracket fix
                 //    TNodeTo leaf = new TNodeTo();
@@ -262,11 +281,14 @@ namespace Fangorn {
 
                 return rtn;
             }
-            public  ConvertArgsRtns<TNodeTo> ConvertPostColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+            public ConvertArgsRtns<TNodeTo> ConvertPostColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                
+                // Make (PreColumn) new node's parent the (rtn) CurrentNode again
+
                 rtn.currentNode = rtn.currentNode.parent;
                 return rtn;
             }
-            public  ConvertArgsRtns<TNodeTo> ClientConvertRowOp(TNode answerColumn, ConvertArgsRtns<TNodeTo> rtn) {
+            public ConvertArgsRtns<TNodeTo> ClientConvertRowOp(TNode answerColumn, ConvertArgsRtns<TNodeTo> rtn) {
 
                 TNodeTo node = new TNodeTo();
                 node.showDiv = answerColumn.showDiv;
@@ -281,6 +303,32 @@ namespace Fangorn {
                 }
                 rtn.currentNode.columns.Add(node);
                 return rtn;
+            }
+            public ConvertArgsRtns<TNodeTo> NewConvertRowOp(TNode rowNode, ConvertArgsRtns<TNodeTo> rtn) {
+                // Now a single row operation
+                TNodeTo node = new TNodeTo();
+                node.showDiv = rowNode.showDiv; // needs to be a row-based 'underlined' thing now
+                node.colType = rowNode.colType; // TODO
+                node.nodeValue= rowNode.nodeValue;
+                node.answered = rowNode.answered;
+
+                rtn.currentNode.rows.Add(node);
+                return rtn;
+            }
+            public void assignConversionResult(Genus version, IPossibleAnswer<TNodeTo> paTo, ConvertArgsRtns<TNodeTo> rtn) {
+                switch (version) {
+                    case Genus.OriginalClient:
+                        paTo.answer.AddRange(rtn.currentNode.columns);
+                        break;
+                    case Genus.OriginalService:
+                        paTo.answer.AddRange(rtn.currentNode.columns);
+                        break;
+                    case Genus.NewStructure:
+                        paTo.answerNode = rtn.currentNode;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
         public class MeasureFactory<TNode, TRtns> where TNode: INode<TNode>, IRenderNode<TNode>, new()
@@ -424,17 +472,14 @@ namespace Fangorn {
                 rtn.Height = Math.Max(rtn.Height, ourHeight);
                 return rtn;
             }
-            public MeasureArgsRtns MeasureNewRowOp(TNode node, MeasureArgsRtns rtn) {
-                var letterHeight = 15; // Integers
-                foreach (var row in node.rows) {
-                    using (Graphics g = Graphics.FromImage(new Bitmap(1, 1))) {
-                        row.rowLen = drawstuff.GetStringLength(row.nodeValue, g, new Font("Arial", 15), new Rectangle(0, 0, 500, 500), null, null);
-                    }
-                    row.rowRect = new Rectangle(0, 0, row.rowLen, letterHeight);
+            public MeasureArgsRtns MeasureNewRowOp(TNode rowNode, MeasureArgsRtns rtn) {
+                // Now a single row operation
+                var letterHeight = 15; 
+                using (Graphics g = Graphics.FromImage(new Bitmap(1, 1))) {
+                    rowNode.rowLen = drawstuff.GetStringLength(rowNode.nodeValue, g, new Font("Arial", 15), new Rectangle(0, 0, 500, 500), null, null);
                 }
-                //if (node.rows.Count>1) { //Fractions, matrices
-                    rtn.Height = letterHeight*node.rows.Count+(10*node.rows.Count);
-                //}
+                rowNode.rowRect = new Rectangle(0, 0, rowNode.rowLen, letterHeight);
+                rtn.Height += letterHeight + 10;
                 return rtn;
             }
         }
@@ -484,31 +529,27 @@ namespace Fangorn {
                         throw new NotImplementedException();
                 }
             }
-            public SizeArgsRtns LayoutNewRowOp(TNode node, SizeArgsRtns rtn) {
+            public SizeArgsRtns LayoutNewRowOp(TNode rowNode, SizeArgsRtns rtn) {
+                // Now a single row operation
+
                 Point offset = new Point(rtn.TopLeft.X, rtn.TopLeft.Y);
                 var letterHeight = 15;
-                foreach (var rowNode in node.rows) {
+                //foreach (var rowNode in node.rows) {
                     if (rowNode.nodeValue.Trim() != ",") {
                         rowNode.rowLen+=5;
                     }
                     if (rtn.uniformSize) {
                         rowNode.rowLen= rtn.uniformedWidth+5;
                     }
-                }
-                if (node.colType==ColTyp.bracket) {
+                //}
+                if (rowNode.colType==ColTyp.bracket) {
                     rtn.Width=10;
                 }
-                int maxWidth = node.rows.Max(r => r.rowLen);
+                int maxWidth = rowNode.rowLen;
 
-                node.rows[0].rowRect = new Rectangle(rtn.Width, 0, node.rows[0].rowLen, letterHeight);
-                if (node.rows.Count > 1){ //Fractions, matrices
-                    rtn.Height =Math.Max(rtn.Height, letterHeight * node.rows.Count + (10* node.rows.Count));
-                    for (int i = 0; i<node.rows.Count; i++) {
-                        //node.rows[i].rowRect = new Rectangle(rtn.Width, letterHeight + 10, node.rows[i].rowLen, letterHeight);
-                        node.rows[i].rowRect = new Rectangle(offset.X+rtn.Width, offset.Y+((letterHeight * i)+ (10*i)), node.rows[i].rowRect.Width, node.rows[i].rowRect.Height);
-                    }
-                }
-                rtn.Width += maxWidth + (node.colType==ColTyp.bracket ? 10:0);
+                rowNode.rowRect = new Rectangle(rtn.Width, 0, rowNode.rowLen, letterHeight);
+
+                rtn.Width += maxWidth + (rowNode.colType==ColTyp.bracket ? 10:0);
                 return rtn;
             }
             public SizeArgsRtns LayoutProcessRows(TNode answerCol, SizeArgsRtns rtn) {
@@ -681,7 +722,8 @@ namespace Fangorn {
                         drawWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, DrawArgsRtns>();
                         break;
                     case Genus.OriginalService:
-                        throw new NotImplementedException();
+                        drawWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, DrawArgsRtns>();
+                        break;
                     case Genus.NewStructure:
                         //drawWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, DrawArgsRtns>();
                         drawWalker = (ITreeWalker<TNode, TRtns>)new WalkNodeInEverythingRow<TNode, DrawArgsRtns>();
@@ -700,7 +742,7 @@ namespace Fangorn {
                         //drawWalker.PostTraversalOp = DrawPostTraversal;
                         break;
                     case Genus.NewStructure:
-                        drawWalker.RowOp = DrawProcessRows;
+                        drawWalker.RowOp = NewDrawProcessRows;
                         //drawWalker.PreColumnOp = DrawPreProcessColumns;
                         //drawWalker.PostColumnOp = DrawPostProcessColumns;
                         break;
@@ -775,6 +817,65 @@ namespace Fangorn {
                         rtn.ansBackBuffer.DrawLine(divisionPen,
                             new Point(x, letterHeight+6),
                             new Point(x + Utils.max(answerColumn.rows.Select(ar => ar.rowLen).ToArray()) -5, letterHeight+6));
+                    }
+                }
+                return rtn;
+            }
+            public DrawArgsRtns NewDrawProcessRows(TNode rowNode, DrawArgsRtns rtn) {
+                // Now a single row operation
+
+                var letterHeight = 15;
+                var font = new Font("Arial", 10);
+
+                //if (answerColumn.colType==ColTyp.real) { }    // sorted with fractions
+                //if (answerColumn.colType==ColTyp.integer) { } // sorted with fractions
+                if (rowNode.colType==ColTyp.product) { }   // draw prodct
+                if (rowNode.colType==ColTyp.sigma) { }     // draw sigma
+                if (rowNode.colType==ColTyp.integral) { }  // draw integral
+                if (rowNode.colType==ColTyp.complex) { }   // draw complex
+                if (rowNode.colType==ColTyp.factorial) { } // draw factorial
+                if (rowNode.colType==ColTyp.choose) { }    // draw choose
+                if ((rowNode.colType & (ColTyp.fraction))>0) {
+
+                    // Prelim leaf (row) brackets
+                    if ((rowNode.colType & (ColTyp.bracket))>0) {
+                        var minX = rowNode.rows.Min(row => row.rowRect.X);
+                        var minY = rowNode.rows.Min(row => row.rowRect.Y);
+                        var height = rtn.Height;
+                        rtn.ansBackBuffer.DrawLine(divisionPen,
+                            new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y),
+                            new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y + height));
+
+                        rtn.ansBackBuffer.DrawLine(divisionPen,
+                            new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y),
+                            new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y + height));
+                    }
+
+                    // Actual node value
+                    rtn.ansBackBuffer.DrawString(rowNode.nodeValue, font, Brushes.Blue, rowNode.rowRect);
+
+                    // Block over the top
+                    rowNode.charCount=0;
+                    rowNode.toBlock.Clear();
+
+                    if (!rowNode.answered && !rtn.ShowAnswers)
+                        rowNode.toBlock.Add(new CharacterRange(0, rowNode.nodeValue.Length));
+
+                    rowNode.blockRegions = drawstuff.GetRegionArray(rowNode.nodeValue, font, new Rectangle(0, 0, 500, 500), rowNode.toBlock.ToArray(), rtn.ansBackBuffer);
+                    foreach (var reg in rowNode.blockRegions) {
+                        rowNode.boundsRect = Rectangle.Round(reg.GetBounds(rtn.ansBackBuffer));
+                        rowNode.blockRect = new Rectangle(rowNode.rowRect.X + rowNode.boundsRect.X,
+                                                          rowNode.rowRect.Y + rowNode.boundsRect.Y,
+                                                          rowNode.boundsRect.Width,
+                                                          rowNode.boundsRect.Height);
+                        rtn.ansBackBuffer.FillRectangle(Brushes.Orange, rowNode.blockRect);
+                    }
+
+                    // division line
+                    if (rowNode.showDiv) {
+                        rtn.ansBackBuffer.DrawLine(divisionPen,
+                            new Point(rowNode.rowRect.X, letterHeight+6),
+                            new Point(rowNode.rowRect.X + rowNode.rowLen-5, letterHeight+6));
                     }
                 }
                 return rtn;
