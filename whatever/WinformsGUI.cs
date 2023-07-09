@@ -88,7 +88,7 @@ namespace DustBlowerClient {
             // run the converter
             foreach (possibleAnswer<qColumn> possAnswer in iquestion.possibleAnswers) {
                 convertRtn = new ConvertArgsRtns<wfNode>();
-                convertRtn.currentNode = new wfNode(); // dummy root
+                //convertRtn.currentNode = new wfNode(); // dummy root
                 //convertRtn = convertWalker.Traverse(possAnswer.answer, convertRtn);
                 wfPossibleAnswer wfPossAnswer = new wfPossibleAnswer();
                 convertRtn = convertWalker.Traverse(iquestion.genus, possAnswer, convertRtn);
@@ -127,8 +127,9 @@ namespace DustBlowerClient {
 
             // run layout
             foreach (wfPossibleAnswer possAnswer in wfPossibleAnswers) {
-                sizeRtn = new SizeArgsRtns(); //This would be a problem with actual multiple answers..
-                sizeRtn.Height = letterHeight;
+                sizeRtn = new SizeArgsRtns() { //This would be a problem with actual multiple answers..
+                    Height = measureRtn.Height,
+                };
                 if (possAnswer.uniformSize) {
                     sizeRtn.uniformSize = possAnswer.uniformSize;
                     sizeRtn.uniformedWidth = 30;// possAnswer.answer.Max(ans => ans.rows.Max(ar => ar.rowLen));
@@ -159,7 +160,7 @@ namespace DustBlowerClient {
             drawRtn = new DrawArgsRtns {
                 TopLeft = new Point(position.X, position.Y),
                 Selected = Selected,
-                Bitmap = new Bitmap(sizeRtn.Width, sizeRtn.Height),
+                Bitmap = new Bitmap(sizeRtn.xIncrement, sizeRtn.Height),
                 Width = sizeRtn.Width,    // ?
                 Height = sizeRtn.Height,  // ?
             };
@@ -247,7 +248,6 @@ namespace DustBlowerClient {
 
             using (Graphics gr = Graphics.FromImage(drawRtn.Bitmap)) {
                 drawRtn.ansBackBuffer = gr;
-                //drawRtn = drawWalker.Traverse(wfPossibleAnswers[0].answer, drawRtn); // <-- Drawing (bitmap construction) is in here...
                 drawRtn = drawWalker.Traverse(iquestion.genus, wfPossibleAnswers[0], drawRtn); // <-- Drawing (bitmap construction) is in here...
                 DrawPostTraversal(wfPossibleAnswers[0].answer, drawRtn);
             }
@@ -329,7 +329,7 @@ namespace DustBlowerClient {
         #endregion
     } // QABubble
     public class InfiniteMathTest : Form {
-        public int maxQuestions { get; set; } = 1;
+        public int maxQuestions { get; set; } = 20;
 
         #region vars
         // -- optional VB'isms --

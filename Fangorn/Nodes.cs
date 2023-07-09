@@ -26,13 +26,17 @@ namespace Fangorn {
         int from { get; set; }
         int to { get; set; }
         bool Infinity { get; set; } 
+        int innerRootCount { get; set; }
     }
     public interface IRenderNode<TNode>{
         TNode parent { get; set; }
         bool showDiv { get; set; }
-        // -- row enrichments ---
-        //string wholeRow { get; set; }
+        int index { get; set; }
         int rowLen { get; set; }
+        int rowHeight { get; set; }
+        int colsMaxRowlen { get; set; }
+        int colsVerticalCentre { get; set; }
+        bool colsUniformlySpaced { get; set; }
         int rowExpLen { get; set; }
         Rectangle rowRect { get; set; } //= Rectangle.Empty; //new Rectangle( 0,0,0,0 );
         int charCount { get; set; } //= 0;

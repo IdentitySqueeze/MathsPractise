@@ -15,7 +15,7 @@ namespace Fangorn {
      * The full set:
      *      So must include types FROM and TO both for converts
      */
-    public class Treebeard<TNode, TNodeTo> where TNode   : INode<TNode>,   IRenderNode<TNode>,   new()
+    public class Treebeard<TNode, TNodeTo> where TNode : INode<TNode>, IRenderNode<TNode>, new()
                                           where TNodeTo : INode<TNodeTo>, IRenderNode<TNodeTo>, new() {
         public class OriginalTreeWalker<TNode, TRtn> : ITreeWalker<TNode, TRtn>
                      where TRtn : IWalkerArgsRtns
@@ -43,7 +43,9 @@ namespace Fangorn {
                 //----------------------------------
                 rtn.depth = depth;
                 if (depth==0) {
-                    rtn= PreTraversalOp(arcs, rtn);
+                    rtn= PreTraversalOp(arcs[0], rtn); 
+                    //arcs[0] is a hack.
+                    //The original client genus will be discouraged going forward
                 }
                 for (int i = 0; i<arcs.Count; i++) { // This is across...
                     TNode arc = arcs[i];
@@ -66,11 +68,12 @@ namespace Fangorn {
                 return rtn;
             }
             #region decs
-            public Func<List<TNode>, TRtn, TRtn> PreTraversalOp { get; set; } = (a, b) => b;
+            public Func<TNode, TRtn, TRtn> PreTraversalOp { get; set; } = (a, b) => b;
             public Func<List<TNode>, TRtn, TRtn> PostTraversalOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PreColumnOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PostColumnOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PreRowOp { get; set; } = (a, b) => b;
+            public Func<TNode, TRtn, TRtn> PostRowOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> RowOp { get; set; } = (a, b) => b;
             #endregion
         }
@@ -102,109 +105,50 @@ namespace Fangorn {
                 //Convert, measure, layout, draw, keys, evaluate
                 //----------------------------------------------
                 rtn.depth = depth;
-                //if (depth==0) {
-                //rtn= PreTraversalOp(nodeIn, rtn); //Op on the outer node
-                //}
+                if (depth==0) {
+                    // Conv: Create a root holder in rtn - set nodeIn parent to dummy node
+                    rtn= PreTraversalOp(nodeIn, rtn);
+                }
+
+                // Conv: Copy this node
+                // Meas: If I'm rooted increment my parent row rootCount
+                // Layt: Adjust width & height for root
                 rtn = PreColumnOp(nodeIn, rtn);
 
-                for (int i = 0; i<nodeIn.columns.Count; i++) { // 5 columns
-                    TNode node = nodeIn.columns[i];
-                    for (int j = 0; j<node.rows.Count; j++) {  // 2 rows
-                        //if leaf
-                        if (node.IsLeaf) {
-                            //    // Down to the nodeValue
-                            //    // Leaf means no columns (leaves/nodeValues can still be bracketted, rooted etc)
-                            rtn = RowOp(node.rows[j], rtn); // Now a single row operation
-                        } else {
-                            //   // This row has columns (an expression, not a nodeValue)
-                            //   // Columns (individuals, groups) can be bracketted, rooted etc.
-                            //
-                            //         // Is the column bracketted/rooted etc?   // <- put this in an op
-                            //         if( bracketted / rooted )                 // <- put this in an op
-                            //         Process decoration( )                     // <- put this in an op
-                            //
-                            //rtn = PreColumnOp(node, rtn);
-                            //
-                            //   // Recurse
-                            depth--;
-                            rtn = Traverse(node, rtn, depth);
-                            depth++;
-                            //
-                            //   // maybe post ColumnOp for bracket ends
-                            //rtn = PostColumnOp(node, rtn);
-                        }
+                
+                for (int j = 0; j<nodeIn.rows.Count; j++) {  // Every node has at least one row
+                    TNode row = nodeIn.rows[j];
+
+                    // Conv: Copy this row
+                    rtn = PreRowOp(row, rtn);
+
+                    // Layt: for won't enter if row has a nodeValue
+                    for (int i = 0; i<row.columns.Count; i++) {
+                        TNode node = row.columns[i];
+                        depth--;
+                        rtn = Traverse(node, rtn, depth);
+                        depth++;
                     }
-                    if (rtn.Exit) return rtn;
+
+                    // Conv: Reset currentNode for rows
+                    rtn = PostRowOp(row, rtn);
                 }
+                if (rtn.Exit) return rtn;
+
+                // Conv: Reset currentNode for columns
+                // Meas: Increase my parent row rootCount by my ancestor rootCount
+                // Layt: Adjust width & height for roots
                 rtn = PostColumnOp(nodeIn, rtn);
                 return rtn;
             }
+            #region blank ops
             public TRtn Traverse(List<TNode> arcs, TRtn rtn, int depth = 0) => rtn;
-            #region decs
-            public Func<List<TNode>, TRtn, TRtn> PreTraversalOp { get; set; } = (a, b) => b;
+            public Func<TNode, TRtn, TRtn> PreTraversalOp { get; set; } = (a, b) => b;
             public Func<List<TNode>, TRtn, TRtn> PostTraversalOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PreColumnOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PostColumnOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> PreRowOp { get; set; } = (a, b) => b;
-            public Func<TNode, TRtn, TRtn> RowOp { get; set; } = (a, b) => b;
-            #endregion
-        }
-
-        public class NewTreeWalkerNotHasRows<TNode, TRtn> : ITreeWalker<TNode, TRtn>
-             where TRtn : IWalkerArgsRtns
-             where TNode : INode<TNode> {
-            public TRtn Traverse(Genus genus, IPossibleAnswer<TNode> possibleAnswer, TRtn rtn) {
-                switch (genus) {
-                    case Genus.OriginalClient:
-                        rtn=  Traverse(possibleAnswer.answer, rtn);
-                        break;
-                    case Genus.OriginalService:
-                        rtn= Traverse(possibleAnswer.answer, rtn);
-                        break;
-                    case Genus.NewStructure:
-                        rtn=Traverse(possibleAnswer.answerNode, rtn);
-                        break;
-                    default:
-                        break;
-                }
-                return rtn;
-            }
-            public TRtn Traverse(List<TNode> nodes, TRtn rtn, int depth = 0) {
-                //----------------------------------------------
-                //Convert, measure, layout, draw, keys, evaluate
-                //----------------------------------------------
-                rtn.depth = depth;
-                if (depth==0) {
-                    rtn= PreTraversalOp(nodes, rtn);
-                }
-                for (int i = 0; i<nodes.Count; i++) { // This is across...
-                    TNode node = nodes[i];
-                    //if (node.decorated ) {
-                    //    rtn = PreColumnOp(node, rtn);
-                    //}
-                    if (node.IsColumn) {
-                        //rtn = PreColumnOp(node, rtn)              // Convert: bracket row handled
-                        depth++;
-                        rtn = Traverse(node.columns, rtn, depth);   // This is Down...
-                        depth--;
-                        rtn=PostColumnOp(node, rtn);                // Measure: bracket wholerow handled
-                    } else {
-                        //if (node.decorated) {
-                        //    rtn = PreRowOp(node, rtn);
-                        //}
-                        rtn=RowOp(node, rtn); // This can have 'downs' in it too by starting a new traverse
-                    }
-                    if (rtn.Exit) return rtn;
-                }
-                return rtn;
-            }
-            public TRtn Traverse(TNode arc, TRtn rtn, int depth = 0) => rtn;
-            #region decs
-            public Func<List<TNode>, TRtn, TRtn> PreTraversalOp { get; set; } = (a, b) => b;
-            public Func<List<TNode>, TRtn, TRtn> PostTraversalOp { get; set; } = (a, b) => b;
-            public Func<TNode, TRtn, TRtn> PreColumnOp { get; set; } = (a, b) => b;
-            public Func<TNode, TRtn, TRtn> PostColumnOp { get; set; } = (a, b) => b;
-            public Func<TNode, TRtn, TRtn> PreRowOp { get; set; } = (a, b) => b;
+            public Func<TNode, TRtn, TRtn> PostRowOp { get; set; } = (a, b) => b;
             public Func<TNode, TRtn, TRtn> RowOp { get; set; } = (a, b) => b;
             #endregion
         }
@@ -230,23 +174,38 @@ namespace Fangorn {
             public void GetWalkerOps(Genus version, ITreeWalker<TNode, ConvertArgsRtns<TNodeTo>> convertWalker) {
                 switch (version) {
                     case Genus.OriginalClient:
-                        convertWalker.RowOp = ClientConvertRowOp;
+                        convertWalker.PreTraversalOp = ClientPreTraversalOp;
                         convertWalker.PreColumnOp = ConvertPreColumnOp;
+                        convertWalker.RowOp = ClientConvertRowOp;
                         convertWalker.PostColumnOp = ConvertPostColumnOp;
                         break;
                     case Genus.OriginalService:
                         throw new NotImplementedException();
                     case Genus.NewStructure:
+                        convertWalker.PreTraversalOp = NewPreTraversalOp;
+                        convertWalker.PreColumnOp = NewConvertPreColumnOp;
+                        convertWalker.PreRowOp = NewConvertPreRowOp;
                         convertWalker.RowOp = NewConvertRowOp;
-                        convertWalker.PreColumnOp = ConvertPreColumnOp;
+                        convertWalker.PostRowOp = NewConvertPostRowOp;
                         convertWalker.PostColumnOp = ConvertPostColumnOp;
                         break;
                     default:
                         break;
                 }
             }
+            public ConvertArgsRtns<TNodeTo> ClientPreTraversalOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                rtn.currentNode = new TNodeTo(); // dummy root
+                return rtn;
+            }
+            public ConvertArgsRtns<TNodeTo> NewPreTraversalOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                TNodeTo node = new TNodeTo();    // dummy root
+                TNodeTo nodeRow = new TNodeTo(); // dummy row
+                node.rows.Add(nodeRow);
+                nodeRow.parent = node;
+                rtn.currentNode = nodeRow;
+                return rtn;
+            }
             public ConvertArgsRtns<TNodeTo> ConvertPreColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
-
                 // Copy incoming node to new node
 
                 TNodeTo node = new TNodeTo();
@@ -262,9 +221,9 @@ namespace Fangorn {
                 // Explicitly set (rtn) CurrentNode as new node's parent
 
                 node.parent = rtn.currentNode;
-                
+
                 // Make new node the (rtn) CurrentNode
-                
+
                 rtn.currentNode = node;
 
                 // Between here and postColumn will be a traverse on incomingNodes' columns
@@ -281,11 +240,54 @@ namespace Fangorn {
 
                 return rtn;
             }
-            public ConvertArgsRtns<TNodeTo> ConvertPostColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
-                
-                // Make (PreColumn) new node's parent the (rtn) CurrentNode again
+            public ConvertArgsRtns<TNodeTo> NewConvertPreColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                // Convert incoming column
+                TNodeTo node = new TNodeTo() {
+                    colType = answerCol.colType,
+                    from= answerCol.from,
+                    to= answerCol.to,
+                    Infinity= answerCol.Infinity
+                };
 
+                // Add to parent
+                // All columns' parents are now rows
+                rtn.currentNode.columns.Add(node); //CurrentNode is currently a row
+
+                // Preserve the structure
+                node.parent = rtn.currentNode;
+
+                // Make this column the CurrentNode
+                rtn.currentNode = node;
+
+                return rtn;
+            }
+            public ConvertArgsRtns<TNodeTo> ConvertPostColumnOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                // Make (PreColumn) new node's parent the (rtn) CurrentNode again
                 rtn.currentNode = rtn.currentNode.parent;
+                return rtn;
+            }
+            public ConvertArgsRtns<TNodeTo> NewConvertPostRowOp(TNode answerCol, ConvertArgsRtns<TNodeTo> rtn) {
+                rtn.currentNode = rtn.currentNode.parent;
+                return rtn;
+            }
+            public ConvertArgsRtns<TNodeTo> NewConvertPreRowOp(TNode rowNode, ConvertArgsRtns<TNodeTo> rtn) {
+                // Convert incoming row
+                TNodeTo node = new TNodeTo() {
+                    showDiv = rowNode.showDiv,
+                    colType = rowNode.colType,
+                    nodeValue = rowNode.nodeValue, // Only rows have values
+                    index = rowNode.index
+                };
+                // Add to parent
+                // All row's parents are columns
+                rtn.currentNode.rows.Add(node); //CurrentNode is currently a column
+
+                // Preserve the structure
+                node.parent = rtn.currentNode;
+
+                // Make this row the CurrentNode
+                rtn.currentNode = node;
+
                 return rtn;
             }
             public ConvertArgsRtns<TNodeTo> ClientConvertRowOp(TNode answerColumn, ConvertArgsRtns<TNodeTo> rtn) {
@@ -324,19 +326,16 @@ namespace Fangorn {
                         paTo.answer.AddRange(rtn.currentNode.columns);
                         break;
                     case Genus.NewStructure:
-                        paTo.answerNode = rtn.currentNode;
+                        paTo.answerNode = rtn.currentNode.columns[0];
                         break;
                     default:
                         break;
                 }
             }
         }
-        public class MeasureFactory<TNode, TRtns> where TNode: INode<TNode>, IRenderNode<TNode>, new()
-            where TRtns:IWalkerArgsRtns, new(){
-
-            //ON THE BENCH
+        public class MeasureFactory<TNode, TRtns> where TNode : INode<TNode>, IRenderNode<TNode>, new()
+            where TRtns : IWalkerArgsRtns, new() {
             public ITreeWalker<TNode, MeasureArgsRtns> measureWalker = new OriginalTreeWalker<TNode, MeasureArgsRtns>();
-            //public ITreeWalker<TNode, TRtns> GetWalker() => (ITreeWalker<TNode, TRtns>)measureWalker;
             public ITreeWalker<TNode, TRtns> GetWalker(Genus version) {
                 ITreeWalker<TNode, TRtns> measureWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, MeasureArgsRtns>();
                 switch (version) {
@@ -363,9 +362,11 @@ namespace Fangorn {
                         measureWalker.RowOp = MeasureProcessRowsService;
                         break;
                     case Genus.NewStructure:
-                        measureWalker.RowOp = MeasureNewRowOp;
-                        //measureWalker.PreColumnOp= MeasureNewPreColumn;
-                        //measureWalker.PostColumnOp= MeasureNewPostColumn;
+                        measureWalker.PreRowOp = NewMeasurePreRowOp;
+                        measureWalker.RowOp = NewMeasureRowOp;
+                        measureWalker.PostRowOp = NewMeasurePostRowOp;
+                        //measureWalker.PreColumnOp= NewMeasurePreColumnOp;
+                        measureWalker.PostColumnOp= NewMeasurePostColumnOp;
                         break;
                     default:
                         break;
@@ -375,7 +376,7 @@ namespace Fangorn {
                 var letterHeight = 19;
                 foreach (var row in answerCol.rows) {
                     using (Graphics g = Graphics.FromImage(new Bitmap(1, 1))) {
-                        row.rowLen = drawstuff.GetStringLength(row.nodeValue, g, new Font("Arial", 15), new Rectangle(0,0,500,500), null, null);
+                        row.rowLen = drawstuff.GetStringLength(row.nodeValue, g, new Font("Arial", 15), new Rectangle(0, 0, 500, 500), null, null);
                     }
                 }
                 if (answerCol.rows.Count==1) { //Single row
@@ -401,8 +402,8 @@ namespace Fangorn {
                             row.rowLen = drawstuff.GetStringLength(row.nodeValue, g, font, new Rectangle(0, 0, 200, 500), null, null);
                             row.rowRect = new Rectangle(0, 0, row.rowLen, expLetterHeight);
                             ourHeight += expLetterHeight * qc.rows.Count;
-                        //} else if (row.colType== ColTyp.bracket) {
-                        //    rtn = measureWalker.Traverse(row.columns, rtn, rtn.depth);
+                            //} else if (row.colType== ColTyp.bracket) {
+                            //    rtn = measureWalker.Traverse(row.columns, rtn, rtn.depth);
 
                         } else {
                             rtn.currentMax=Math.Max(rtn.currentMax, qc.rows.Count); // bracket verticals
@@ -472,26 +473,57 @@ namespace Fangorn {
                 rtn.Height = Math.Max(rtn.Height, ourHeight);
                 return rtn;
             }
-            public MeasureArgsRtns MeasureNewRowOp(TNode rowNode, MeasureArgsRtns rtn) {
+            public MeasureArgsRtns NewMeasurePreRowOp(TNode rowNode, MeasureArgsRtns rtn) {
+                if (rowNode.nodeValue != null) { //Not all rows have nodeValues
+                    var letterHeight = 15;
+                    using (Graphics g = Graphics.FromImage(new Bitmap(1, 1))) {
+                        rowNode.rowLen = drawstuff.GetStringLength(rowNode.nodeValue, g, new Font("Consolas", 15), new Rectangle(0, 0, 500, 500), null, null);
+                    }
+                    rowNode.rowHeight= letterHeight;
+                    rowNode.rowRect = new Rectangle(0, 0, rowNode.rowLen, letterHeight);
+                    rtn.Height += letterHeight + 10;
+                }
+                return rtn;
+            }
+            public MeasureArgsRtns NewMeasureRowOp(TNode rowNode, MeasureArgsRtns rtn) {
                 // Now a single row operation
-                var letterHeight = 15; 
+                var letterHeight = 15;
                 using (Graphics g = Graphics.FromImage(new Bitmap(1, 1))) {
-                    rowNode.rowLen = drawstuff.GetStringLength(rowNode.nodeValue, g, new Font("Arial", 15), new Rectangle(0, 0, 500, 500), null, null);
+                    rowNode.rowLen = drawstuff.GetStringLength(rowNode.nodeValue, g, new Font("Consolas", 15), new Rectangle(0, 0, 500, 500), null, null);
                 }
                 rowNode.rowRect = new Rectangle(0, 0, rowNode.rowLen, letterHeight);
                 rtn.Height += letterHeight + 10;
                 return rtn;
             }
+            public MeasureArgsRtns NewMeasurePostRowOp(TNode rowNode, MeasureArgsRtns rtn) {
+                if (rowNode.nodeValue == null) { // Container
+                    rowNode.colsMaxRowlen = rowNode.columns.Max(c=>c.rows.Max(r => r.rowLen));
+                    var rowsHeight = rowNode.columns.Max(c => c.rows.Sum(r => r.rowHeight));
+                    var rowsCount = rowNode.columns.Count;
+                    rowNode.colsVerticalCentre = (rowsHeight + (rowsCount-1)*10)/2;
+                }
+                if (rowNode.colType == ColTyp.rooted) {
+                    rowNode.parent.innerRootCount++; // My root
+                }
+                rowNode.parent.innerRootCount += rowNode.innerRootCount; // My ancestors' roots 
+                return rtn;
+            }
+            public MeasureArgsRtns NewMeasurePreColumnOp(TNode columnNode, MeasureArgsRtns rtn) {
+                if (columnNode.colType == ColTyp.rooted) {
+                    columnNode.parent.innerRootCount++; //My root
+                }
+                return rtn;
+            }
+            public MeasureArgsRtns NewMeasurePostColumnOp(TNode columnNode, MeasureArgsRtns rtn) {
+                if (columnNode.parent != null) {
+                    columnNode.parent.innerRootCount += columnNode.innerRootCount; //My ancestors' roots
+                }
+                return rtn;
+            }
         }
-        public class LayoutFactory<TNode, TRtns> where TNode : INode<TNode>, 
-                                                               IRenderNode<TNode>,
-                                                               new()
-                                                 where  TRtns: IWalkerArgsRtns,
-                                                               new()
-            {
-            //ON THE BENCH
+        public class LayoutFactory<TNode, TRtns> where TNode : INode<TNode>, IRenderNode<TNode>, new()
+                                                 where TRtns : IWalkerArgsRtns, new() {
             public ITreeWalker<TNode, SizeArgsRtns> layoutWalker = new OriginalTreeWalker<TNode, SizeArgsRtns>();
-            //public ITreeWalker<TNode, TRtns> GetWalker() => (ITreeWalker<TNode, TRtns>)layoutWalker;
             public ITreeWalker<TNode, TRtns> GetWalker(Genus version) {
                 ITreeWalker<TNode, TRtns> layoutWalker = (ITreeWalker<TNode, TRtns>)new OriginalTreeWalker<TNode, SizeArgsRtns>();
                 switch (version) {
@@ -510,7 +542,7 @@ namespace Fangorn {
                 return layoutWalker;
             }
             public void GetWalkerOps(Genus version, ITreeWalker<TNode, SizeArgsRtns> layoutWalker) {
-                switch(version){
+                switch (version) {
                     case Genus.OriginalClient:
                         //layoutWalker.RowOp = LayoutProcessRows;
                         layoutWalker.RowOp = SizeProcessRows;
@@ -521,35 +553,60 @@ namespace Fangorn {
                         layoutWalker.RowOp = SizeProcessRowsService;
                         break;
                     case Genus.NewStructure:
-                        layoutWalker.RowOp = LayoutNewRowOp;
-                        //layoutWalker.PreColumnOp = LayoutPreColumnOp;
-                        //layoutWalker.PostColumnOp = LayoutNewPostColumnOp;
+                        layoutWalker.PreRowOp = NewLayoutPreRowOp;
+                        layoutWalker.PreColumnOp = NewLayoutPreColumnOp;
+                        layoutWalker.PostColumnOp = NewLayoutPostColumnOp;
                         break;
                     default:
                         throw new NotImplementedException();
                 }
             }
-            public SizeArgsRtns LayoutNewRowOp(TNode rowNode, SizeArgsRtns rtn) {
+            public SizeArgsRtns NewLayoutPreRowOp(TNode rowNode, SizeArgsRtns rtn) {
                 // Now a single row operation
-
-                Point offset = new Point(rtn.TopLeft.X, rtn.TopLeft.Y);
                 var letterHeight = 15;
-                //foreach (var rowNode in node.rows) {
+                if (rowNode.nodeValue !=null) {
+                    Point offset = new Point(rtn.TopLeft.X, rtn.TopLeft.Y);
+
+                    if (rowNode.colType==ColTyp.bracket) {
+                        rtn.Width=10;
+                    }
                     if (rowNode.nodeValue.Trim() != ",") {
                         rowNode.rowLen+=5;
                     }
+
+                    int stackWidth, x, y, length;
+
+                    // Calculate x
+                    stackWidth = rowNode.parent.rows.Max(n => n.rowLen);
+                    x = offset.X + rtn.xIncrement + stackWidth/2 - rowNode.rowLen/2;
+                    y = offset.Y + (rowNode.index * (letterHeight + 10))-10;
                     if (rtn.uniformSize) {
-                        rowNode.rowLen= rtn.uniformedWidth+5;
+                        length = rowNode.parent.parent.colsMaxRowlen + 5;
+                    } else {
+                        length = rowNode.rowLen;
                     }
-                //}
-                if (rowNode.colType==ColTyp.bracket) {
-                    rtn.Width=10;
+
+                    // Calculate y
+                    if (rowNode.parent.rows.Count==1) {
+                        // Single row.
+                        // Centre vertically wrt sibling columns' rows.
+                        // Parent column's parent row has what I need - See #NOTE G0914
+                        y = (offset.Y + rowNode.parent.parent.colsVerticalCentre) - 5;
+                    } else {
+                        y = offset.Y + rtn.yIncrement + rowNode.rowHeight;
+                    }
+
+                    rowNode.rowRect = new Rectangle(x, y, length, letterHeight);
+                    rtn.yIncrement += rowNode.rowHeight + 10;
+
+                } else {
+                    // # NOTE G0914
+                    // Non-leaf rows are column containers.
+                    // I only have columns. Store their collective vertical centre. Use my rowRect.
+                    int stackHeight = rowNode.columns.Max(c=>c.rows.Max(n => n.index)* (letterHeight + 10));
+                    rowNode.rowRect = new Rectangle(rowNode.rowRect.X, rowNode.rowRect.Y, rowNode.rowRect.Width, stackHeight);
+                    // REMEMBER: Valueless/non-leaf row now has a rowRect..
                 }
-                int maxWidth = rowNode.rowLen;
-
-                rowNode.rowRect = new Rectangle(rtn.Width, 0, rowNode.rowLen, letterHeight);
-
-                rtn.Width += maxWidth + (rowNode.colType==ColTyp.bracket ? 10:0);
                 return rtn;
             }
             public SizeArgsRtns LayoutProcessRows(TNode answerCol, SizeArgsRtns rtn) {
@@ -598,6 +655,7 @@ namespace Fangorn {
                     = new Rectangle(rtn.Width, letterHeight + 10, answerCol.rows[1].rowLen, letterHeight);
                 }
                 rtn.Width += maxWidth;
+                rtn.xIncrement=rtn.Width;
                 return rtn;
             }
             public SizeArgsRtns SizeProcessRowsService(TNode qc, SizeArgsRtns rtn) {
@@ -678,40 +736,30 @@ namespace Fangorn {
                 }
                 return rtn;
             }
-            public SizeArgsRtns LayoutPreColumnOp(TNode ac, SizeArgsRtns rtn) {
-                var font = new Font("Arial", 15);
-                if (ac.colType==ColTyp.bracket)
-                    rtn.Width +=10;
-                if (ac.colType==ColTyp.sigma) {
-                    int len = drawstuff.GetStringLength(ac.from+"__", font);
-                    ac.rowRect=new Rectangle(rtn.Width, 0, len, 1);
-                    rtn.Width+=len;
-                }
-
+            public SizeArgsRtns NewLayoutPreColumnOp(TNode columnNode, SizeArgsRtns rtn) {
+                rtn.Height += 5 * columnNode.innerRootCount;
+                rtn.Width += 5 * columnNode.innerRootCount;
+                rtn.yIncrement = 0; // Reset on each new column
                 return rtn;
             }
-            public SizeArgsRtns LayoutPostColumnOp(TNode ac, SizeArgsRtns rtn) {
-                var letterHeight = 19;
-                float mid = (float)rtn.Height/2f;
-                float dynY = (mid- ((float)ac.rows.Count/2f*letterHeight));// TODO: sync
-
-                if (ac.colType==ColTyp.bracket)
-                    rtn.Width +=10;
-                if (ac.colType==ColTyp.sigma) {
-                    ac.rowRect=new Rectangle(ac.rowRect.X, (int)dynY, rtn.Width, 3*letterHeight);
-                    rtn.Height=Math.Max(rtn.Height, 5*letterHeight);
-                }
-
+            public SizeArgsRtns NewLayoutPostColumnOp(TNode ac, SizeArgsRtns rtn) {
+                // Update the cumulative x from my stack of rows
+                rtn.xIncrement += ac.rows.Max(r => r.rowLen);
                 return rtn;
             }
+            //public SizeArgsRtns LayoutPostColumnOp(TNode ac, SizeArgsRtns rtn) {
+            //    // Update the cumulative x from my stack of rows
+            //    rtn.xIncrement += ac.rows.Max(r => r.rowLen);
+            //    return rtn;
+            //}
 
 
         }
-        public class DrawFactory<TNode, TRtns> : IDrawFactory where TNode : INode<TNode>, 
-                                                             IRenderNode<TNode>, 
+        public class DrawFactory<TNode, TRtns> : IDrawFactory where TNode : INode<TNode>,
+                                                             IRenderNode<TNode>,
                                                              new()
                                                where TRtns : IWalkerArgsRtns,
-                                                             new(){
+                                                             new() {
             private Pen divisionPen { get; set; } = new Pen(Color.Black, 2);
             //public ITreeWalker<TNode, DrawArgsRtns> drawWalker = new TreeWalker<TNode, DrawArgsRtns>();
             //public ITreeWalker<TNode, TRtns> GetWalker() => (ITreeWalker<TNode, TRtns>)drawWalker;
@@ -742,7 +790,11 @@ namespace Fangorn {
                         //drawWalker.PostTraversalOp = DrawPostTraversal;
                         break;
                     case Genus.NewStructure:
-                        drawWalker.RowOp = NewDrawProcessRows;
+                        //I'm going to have to count roots.
+
+                        //drawWalker.RowOp = NewDrawProcessRows;
+                        drawWalker.PreRowOp=NewDrawProcessRows;
+                        //drawWalker.PostRowOp=;
                         //drawWalker.PreColumnOp = DrawPreProcessColumns;
                         //drawWalker.PostColumnOp = DrawPostProcessColumns;
                         break;
@@ -762,13 +814,13 @@ namespace Fangorn {
                 if (answerColumn.colType==ColTyp.complex) { }   // draw complex
                 if (answerColumn.colType==ColTyp.factorial) { } // draw factorial
                 if (answerColumn.colType==ColTyp.choose) { }    // draw choose
-                if ((answerColumn.colType & (ColTyp.fraction ))>0) {
+                if ((answerColumn.colType & (ColTyp.fraction))>0) {
 
                     // Draw_ProcessIndividualFractionStyledExpressionColumns
 
                     // Brackets
                     if ((answerColumn.colType & (ColTyp.bracket))>0) {
-                        var minX = answerColumn.rows.Min(row=>row.rowRect.X);
+                        var minX = answerColumn.rows.Min(row => row.rowRect.X);
                         var minY = answerColumn.rows.Min(row => row.rowRect.Y);
                         var height = rtn.Height;
                         rtn.ansBackBuffer.DrawLine(divisionPen,
@@ -796,7 +848,7 @@ namespace Fangorn {
                         if (!row.answered && !rtn.ShowAnswers)
                             row.toBlock.Add(new CharacterRange(0, row.nodeValue.Length));
 
-                        row.blockRegions = drawstuff.GetRegionArray(row.nodeValue, font, new Rectangle(0, 0, 500, 500), row.toBlock.ToArray(), rtn.ansBackBuffer); 
+                        row.blockRegions = drawstuff.GetRegionArray(row.nodeValue, font, new Rectangle(0, 0, 500, 500), row.toBlock.ToArray(), rtn.ansBackBuffer);
                         foreach (var reg in row.blockRegions) {
                             row.boundsRect = Rectangle.Round(reg.GetBounds(rtn.ansBackBuffer));
                             row.blockRect = new Rectangle(row.rowRect.X + row.boundsRect.X,
@@ -823,59 +875,65 @@ namespace Fangorn {
             }
             public DrawArgsRtns NewDrawProcessRows(TNode rowNode, DrawArgsRtns rtn) {
                 // Now a single row operation
+                if (rowNode.nodeValue!=null) {
+                    var letterHeight = 15;
+                    var font = new Font("Arial", 10);
 
-                var letterHeight = 15;
-                var font = new Font("Arial", 10);
+                    //if (answerColumn.colType==ColTyp.real) { }    // sorted with fractions
+                    //if (answerColumn.colType==ColTyp.integer) { } // sorted with fractions
+                    if (rowNode.colType==ColTyp.product) { }   // draw prodct
+                    if (rowNode.colType==ColTyp.sigma) { }     // draw sigma
+                    if (rowNode.colType==ColTyp.integral) { }  // draw integral
+                    if (rowNode.colType==ColTyp.complex) { }   // draw complex
+                    if (rowNode.colType==ColTyp.factorial) { } // draw factorial
+                    if (rowNode.colType==ColTyp.choose) { }    // draw choose
+                    if ((rowNode.colType & (ColTyp.fraction))>0) {
 
-                //if (answerColumn.colType==ColTyp.real) { }    // sorted with fractions
-                //if (answerColumn.colType==ColTyp.integer) { } // sorted with fractions
-                if (rowNode.colType==ColTyp.product) { }   // draw prodct
-                if (rowNode.colType==ColTyp.sigma) { }     // draw sigma
-                if (rowNode.colType==ColTyp.integral) { }  // draw integral
-                if (rowNode.colType==ColTyp.complex) { }   // draw complex
-                if (rowNode.colType==ColTyp.factorial) { } // draw factorial
-                if (rowNode.colType==ColTyp.choose) { }    // draw choose
-                if ((rowNode.colType & (ColTyp.fraction))>0) {
+                        // Prelim leaf (row) brackets
+                        //if ((rowNode.colType & (ColTyp.bracket))>0) {
+                        //    var minX = rowNode.rows.Min(row => row.rowRect.X);
+                        //    var minY = rowNode.rows.Min(row => row.rowRect.Y);
+                        //    var height = rtn.Height;
+                        //    rtn.ansBackBuffer.DrawLine(divisionPen,
+                        //        new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y),
+                        //        new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y + height));
 
-                    // Prelim leaf (row) brackets
-                    if ((rowNode.colType & (ColTyp.bracket))>0) {
-                        var minX = rowNode.rows.Min(row => row.rowRect.X);
-                        var minY = rowNode.rows.Min(row => row.rowRect.Y);
-                        var height = rtn.Height;
-                        rtn.ansBackBuffer.DrawLine(divisionPen,
-                            new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y),
-                            new Point(rowNode.rowRect.X-8, rowNode.rowRect.Y + height));
+                        //    rtn.ansBackBuffer.DrawLine(divisionPen,
+                        //        new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y),
+                        //        new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y + height));
+                        //}
 
-                        rtn.ansBackBuffer.DrawLine(divisionPen,
-                            new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y),
-                            new Point(rowNode.rowRect.X+rtn.Width-8, rowNode.rowRect.Y + height));
-                    }
+                        // Actual node value
+                        rtn.ansBackBuffer.DrawString(rowNode.nodeValue, font, Brushes.Blue, 
+                            new Rectangle(rowNode.rowRect.X, rowNode.rowRect.Y, rowNode.rowLen, letterHeight));
 
-                    // Actual node value
-                    rtn.ansBackBuffer.DrawString(rowNode.nodeValue, font, Brushes.Blue, rowNode.rowRect);
+                        // Block over the top
+                        //rowNode.charCount=0;
+                        //rowNode.toBlock.Clear();
 
-                    // Block over the top
-                    rowNode.charCount=0;
-                    rowNode.toBlock.Clear();
+                        //if (!rowNode.answered && !rtn.ShowAnswers)
+                        //    rowNode.toBlock.Add(new CharacterRange(0, rowNode.nodeValue.Length));
 
-                    if (!rowNode.answered && !rtn.ShowAnswers)
-                        rowNode.toBlock.Add(new CharacterRange(0, rowNode.nodeValue.Length));
+                        //rowNode.blockRegions = drawstuff.GetRegionArray(rowNode.nodeValue, font, new Rectangle(0, 0, 500, 500), rowNode.toBlock.ToArray(), rtn.ansBackBuffer);
+                        //foreach (var reg in rowNode.blockRegions) {
+                        //    rowNode.boundsRect = Rectangle.Round(reg.GetBounds(rtn.ansBackBuffer));
+                        //    rowNode.blockRect = new Rectangle(rowNode.rowRect.X + rowNode.boundsRect.X,
+                        //                                      rowNode.rowRect.Y + rowNode.boundsRect.Y,
+                        //                                      rowNode.boundsRect.Width,
+                        //                                      rowNode.boundsRect.Height);
+                        //    rtn.ansBackBuffer.FillRectangle(Brushes.Orange, rowNode.blockRect);
+                        //}
 
-                    rowNode.blockRegions = drawstuff.GetRegionArray(rowNode.nodeValue, font, new Rectangle(0, 0, 500, 500), rowNode.toBlock.ToArray(), rtn.ansBackBuffer);
-                    foreach (var reg in rowNode.blockRegions) {
-                        rowNode.boundsRect = Rectangle.Round(reg.GetBounds(rtn.ansBackBuffer));
-                        rowNode.blockRect = new Rectangle(rowNode.rowRect.X + rowNode.boundsRect.X,
-                                                          rowNode.rowRect.Y + rowNode.boundsRect.Y,
-                                                          rowNode.boundsRect.Width,
-                                                          rowNode.boundsRect.Height);
-                        rtn.ansBackBuffer.FillRectangle(Brushes.Orange, rowNode.blockRect);
-                    }
+                        // division line
+                        if (rowNode.showDiv) {
+                            int xStart = rowNode.parent.rows.Min(r => r.rowRect.X);
+                            int xEnd = xStart + rowNode.parent.rows.Max(r => r.rowLen)-5;
+                            int midY = (rowNode.rowRect.Y + rowNode.rowRect.Height) +5;
 
-                    // division line
-                    if (rowNode.showDiv) {
-                        rtn.ansBackBuffer.DrawLine(divisionPen,
-                            new Point(rowNode.rowRect.X, letterHeight+6),
-                            new Point(rowNode.rowRect.X + rowNode.rowLen-5, letterHeight+6));
+                            rtn.ansBackBuffer.DrawLine(divisionPen,
+                                new Point(xStart, midY),
+                                new Point(xEnd, midY));
+                        }
                     }
                 }
                 return rtn;
@@ -1168,7 +1226,7 @@ namespace Fangorn {
 
                 // Denominator if present..
                 nextRow = default;
-                
+
                 if (answerNode.rows.Count == 2) { // Not that good at this
                     if (answerNode.rows.Any(a => a.ansType == ansType.Den))
                         nextRow = answerNode.rows.First(a => a.ansType == ansType.Den);
@@ -1176,8 +1234,8 @@ namespace Fangorn {
                         nextRow = answerNode.rows[1];
                     if (!nextRow.answered) {  // Skip over answered nums/denoms
                                               //for (int i = 0; i<nextRow.rowChunks.Count; i++) { wfNodeElement ac = nextRow.rowChunks[i]; // each chunk...
-                        // Any chunk in the row can match, but only one of them...
-                        //if ((!ac.answered) && ac.elementChunk == rtn.InputSoFar) { // Match !!
+                                              // Any chunk in the row can match, but only one of them...
+                                              //if ((!ac.answered) && ac.elementChunk == rtn.InputSoFar) { // Match !!
                         if ((!nextRow.answered) && nextRow.nodeValue== rtn.InputSoFar) { // Match !!
                             rtn.hit = true;
                             rtn.Exit = true;
@@ -1199,10 +1257,10 @@ namespace Fangorn {
         public class EvaluateFactory { }
     }
     public interface IDrawFactory { }
-    public enum Genus: int {
-            OriginalClient  = 1,
-            OriginalService = 2,
-            NewStructure = 4
+    public enum Genus : int {
+        OriginalClient = 1,
+        OriginalService = 2,
+        NewStructure = 4
     }
 
     public static class drawstuff {
@@ -1235,5 +1293,5 @@ namespace Fangorn {
             StringFormat strFmt = GetStringFormat(crArray);
             return g.MeasureCharacterRanges(str, font, rect, strFmt);
         }
-   }
+    }
 }

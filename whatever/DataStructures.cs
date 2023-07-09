@@ -37,6 +37,7 @@ namespace DustBlowerClient {
         public bool showDiv { get; set; }
         //public string wholeRow { get; set; }
         public int rowLen { get; set; }
+        public int rowHeight { get; set; }
         public int rowExpLen { get; set; }
         public Rectangle rowRect { get; set; } = Rectangle.Empty; //new Rectangle( 0,0,0,0 );
         public List<CharacterRange> toBlock { get; set; } = new List<CharacterRange> { };
@@ -44,6 +45,11 @@ namespace DustBlowerClient {
         public Rectangle blockRect { get; set; } = Rectangle.Empty;
         public Rectangle boundsRect { get; set; } = Rectangle.Empty;
         public Region[] blockRegions { get; set; }
+        public int innerRootCount { get; set; }
+        public int index { get; set; } = 1;
+        public int colsMaxRowlen { get; set; }
+        public int colsVerticalCentre { get; set; }
+        public bool colsUniformlySpaced { get; set; }
         // -- IAnswerNode --
         public bool answered { get; set; } //sftt
         public ansType ansType { get; set; } = ansType.Num;

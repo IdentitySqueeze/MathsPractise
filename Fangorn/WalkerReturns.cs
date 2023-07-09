@@ -43,6 +43,8 @@ namespace Fangorn {
         public int Width { get; set; }
         public int Height { get; set; }
         public bool uniformSize { get; set; }
+        public int xIncrement { get; set; }
+        public int yIncrement { get; set; }
         public int uniformedWidth { get; set; }
         public int depth { get; set; }
         public int maxRootDepth { get; set; }
